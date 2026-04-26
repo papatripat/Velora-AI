@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 // ============================================================
 // ChatMessage - Komponen untuk menampilkan satu bubble pesan
 // ============================================================
@@ -18,29 +20,28 @@ export default function ChatMessage({ role, content }: ChatMessageProps) {
                 }`}
         >
             {/* Avatar */}
-            <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ${isUser
-                        ? "bg-[var(--color-primary)] text-white"
-                        : "bg-[var(--color-surface-light)] text-[var(--color-primary-light)]"
-                    }`}
-            >
-                {isUser ? "U" : "V"}
-            </div>
+            {isUser ? (
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0 bg-[var(--color-primary)] text-white">
+                    U
+                </div>
+            ) : (
+                <Image src="/velora-logo.png" alt="Velora AI" width={32} height={32} className="w-8 h-8 rounded-full object-cover shrink-0" />
+            )}
 
             {/* Message bubble */}
             <div className="flex flex-col max-w-[75%]">
                 <span
                     className={`text-xs font-medium mb-1 ${isUser
-                            ? "text-right text-[var(--color-primary-light)]"
-                            : "text-left text-[var(--color-text-muted)]"
+                        ? "text-right text-[var(--color-primary-light)]"
+                        : "text-left text-[var(--color-text-muted)]"
                         }`}
                 >
                     {isUser ? "You" : "Velora AI"}
                 </span>
                 <div
                     className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${isUser
-                            ? "bg-[var(--color-user-bubble)] text-white rounded-br-md"
-                            : "bg-[var(--color-ai-bubble)] text-[var(--color-text)] border border-[var(--color-border)] rounded-bl-md"
+                        ? "bg-[var(--color-user-bubble)] text-white rounded-br-md"
+                        : "bg-[var(--color-ai-bubble)] text-[var(--color-text)] border border-[var(--color-border)] rounded-bl-md"
                         }`}
                 >
                     {content}

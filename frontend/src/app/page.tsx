@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import ChatMessage from "@/components/ChatMessage";
 import ChatInput from "@/components/ChatInput";
 
@@ -69,9 +70,7 @@ export default function Home() {
     <div className="flex flex-col h-screen">
       {/* ========== Header ========== */}
       <header className="flex items-center gap-3 px-6 py-4 border-b border-[var(--color-border)] bg-[var(--color-surface)] glow-effect">
-        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-light)] flex items-center justify-center text-white font-bold text-lg">
-          V
-        </div>
+        <Image src="/velora-logo.png" alt="Velora AI" width={40} height={40} className="w-10 h-10 rounded-full object-cover" />
         <div>
           <h1 className="text-lg font-bold text-white">Velora AI</h1>
           <p className="text-xs text-[var(--color-text-muted)]">
@@ -85,9 +84,7 @@ export default function Home() {
         {/* Pesan selamat datang */}
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center animate-fade-in">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[var(--color-primary)] to-[var(--color-primary-light)] flex items-center justify-center text-white text-3xl font-bold mb-6 glow-effect">
-              V
-            </div>
+            <Image src="/velora-logo.png" alt="Velora AI" width={80} height={80} className="w-20 h-20 rounded-full object-cover mb-6 glow-effect" />
             <h2 className="text-2xl font-bold text-white mb-2">
               Halo! Saya Velora AI 👋
             </h2>
@@ -106,9 +103,7 @@ export default function Home() {
         {/* Loading indicator */}
         {isLoading && (
           <div className="flex items-start gap-3 animate-fade-in">
-            <div className="w-8 h-8 rounded-full bg-[var(--color-surface-light)] text-[var(--color-primary-light)] flex items-center justify-center text-sm font-bold">
-              V
-            </div>
+            <Image src="/velora-logo.png" alt="Velora AI" width={32} height={32} className="w-8 h-8 rounded-full object-cover" />
             <div className="px-4 py-3 rounded-2xl rounded-bl-md bg-[var(--color-ai-bubble)] border border-[var(--color-border)]">
               <div className="flex items-center gap-1.5">
                 <span className="w-2 h-2 bg-[var(--color-primary-light)] rounded-full dot-1" />

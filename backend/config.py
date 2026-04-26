@@ -11,11 +11,12 @@ env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
 # Ambil API key dari environment variable
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-if not OPENAI_API_KEY:
+if not GROQ_API_KEY:
     raise ValueError(
-        "OPENAI_API_KEY belum di-set! "
+        "GROQ_API_KEY belum di-set! "
         "Buat file .env di folder backend/ dan isi dengan API key kamu. "
-        "Contoh: OPENAI_API_KEY=sk-xxxxxxxx"
+        "Contoh: GROQ_API_KEY=gsk_xxxxxxxx"
     )
+

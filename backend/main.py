@@ -1,16 +1,16 @@
 """
 main.py - Velora AI Backend Server
-FastAPI server dengan endpoint /chat untuk komunikasi dengan OpenAI API
+FastAPI server dengan endpoint /chat untuk komunikasi dengan Groq API
 """
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
-from config import OPENAI_API_KEY
+from config import GROQ_API_KEY
 
 # ============================================================
-# Inisialisasi App & OpenAI Client
+# Inisialisasi App & Groq Client
 # ============================================================
 
 app = FastAPI(
@@ -28,8 +28,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Inisialisasi OpenAI client
-client = OpenAI(api_key=OPENAI_API_KEY)
+# Inisialisasi Groq client (kompatibel dengan OpenAI SDK)
+client = OpenAI(
+    api_key=GROQ_API_KEY,
+    base_url="https://api.groq.com/openai/v1",
+)
 
 # ============================================================
 # Schema Request & Response
@@ -57,16 +60,16 @@ def health_check():
 async def chat(request: ChatRequest):
     """
     Endpoint utama untuk chat dengan AI.
-    Menerima pesan dari user, mengirim ke OpenAI, dan mengembalikan respons.
+    Menerima pesan dari user, mengirim ke Groq, dan mengembalikan respons.
     """
     # Validasi input
     if not request.message.strip():
         raise HTTPException(status_code=400, detail="Pesan tidak boleh kosong!")
 
     try:
-        # Kirim request ke OpenAI API
+        # Kirim request ke Groq API
         completion = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="llama-3.3-70b-versatile",
             messages=[
                 {
                     "role": "system",
@@ -86,7 +89,7 @@ async def chat(request: ChatRequest):
             temperature=0.7,
         )
 
-        # Ambil respons dari OpenAI
+        # Ambil respons dari Groq
         ai_response = completion.choices[0].message.content
         return ChatResponse(response=ai_response)
 
