@@ -27,32 +27,47 @@ body {
 ::-webkit-scrollbar {
   width: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--color-bg);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
 }
 
 /* Typing dots animation */
 @keyframes bounce-dot {
-  0%, 80%, 100% {
+
+  0%,
+  80%,
+  100% {
     transform: translateY(0);
     opacity: 0.4;
   }
+
   40% {
     transform: translateY(-6px);
     opacity: 1;
   }
 }
 
-.dot-1 { animation: bounce-dot 1.2s infinite 0s; }
-.dot-2 { animation: bounce-dot 1.2s infinite 0.2s; }
-.dot-3 { animation: bounce-dot 1.2s infinite 0.4s; }
+.dot-1 {
+  animation: bounce-dot 1.2s infinite 0s;
+}
+
+.dot-2 {
+  animation: bounce-dot 1.2s infinite 0.2s;
+}
+
+.dot-3 {
+  animation: bounce-dot 1.2s infinite 0.4s;
+}
 
 /* Message fade-in animation */
 @keyframes fade-in-up {
@@ -60,6 +75,7 @@ body {
     opacity: 0;
     transform: translateY(8px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -73,4 +89,138 @@ body {
 /* Gradient glow effect */
 .glow-effect {
   box-shadow: 0 0 20px rgba(108, 92, 231, 0.15);
+}
+
+/* ============================================================
+   Markdown Content Styles (pesan AI)
+   ============================================================ */
+
+.markdown-content p {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content strong {
+  font-weight: 700;
+  color: #fff;
+}
+
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0.5rem 0;
+  padding-left: 1.4rem;
+}
+
+.markdown-content ul {
+  list-style: disc;
+}
+
+.markdown-content ol {
+  list-style: decimal;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3 {
+  font-weight: 700;
+  color: #fff;
+  margin: 0.75rem 0 0.4rem;
+}
+
+.markdown-content h1 {
+  font-size: 1.25rem;
+}
+
+.markdown-content h2 {
+  font-size: 1.1rem;
+}
+
+.markdown-content h3 {
+  font-size: 1rem;
+}
+
+/* Inline code */
+.markdown-content code:not(pre code) {
+  background: rgba(108, 92, 231, 0.2);
+  color: var(--color-primary-light);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.85em;
+  font-family: "Fira Code", "Cascadia Code", monospace;
+}
+
+/* Code block */
+.markdown-content pre {
+  background: #12121f;
+  border: 1px solid var(--color-border);
+  border-radius: 0.6rem;
+  padding: 0.8rem 1rem;
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.markdown-content pre code {
+  background: none;
+  color: var(--color-text);
+  padding: 0;
+  font-family: "Fira Code", "Cascadia Code", monospace;
+}
+
+/* Blockquote */
+.markdown-content blockquote {
+  border-left: 3px solid var(--color-primary);
+  padding-left: 0.8rem;
+  margin: 0.5rem 0;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Table */
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.85rem;
+}
+
+.markdown-content th,
+.markdown-content td {
+  border: 1px solid var(--color-border);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+
+.markdown-content th {
+  background: var(--color-surface-light);
+  color: #fff;
+  font-weight: 600;
+}
+
+/* Horizontal rule */
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: 0.75rem 0;
+}
+
+/* ============================================================
+   Copy Button
+   ============================================================ */
+
+.copy-btn {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.msg-wrapper:hover .copy-btn {
+  opacity: 1;
 }
