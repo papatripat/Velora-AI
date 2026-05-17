@@ -154,57 +154,96 @@ export default function Home() {
     setIsLoading(true);
 
     try {
-      let data;
+      // Siapkan history untuk memori konteks
+      const historyMessages = (activeConversation?.messages || []).map(m => ({
+          role: m.role,
+          content: m.content || (m.fileName ? `[File terlampir: ${m.fileName}]` : "")
+      }));
+
+      let res;
 
       if (file) {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("message", message);
+        formData.append("history", JSON.stringify(historyMessages));
 
-        const res = await fetch("http://localhost:8000/chat-with-file", {
+        res = await fetch("http://localhost:8000/chat-with-file", {
           method: "POST",
           body: formData,
         });
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => null);
-          throw new Error(errData?.detail || `Error ${res.status}`);
-        }
-        data = await res.json();
       } else {
-        const res = await fetch("http://localhost:8000/chat", {
+        const apiMessagesForChat = [
+            ...historyMessages,
+            { role: "user", content: message }
+        ];
+
+        res = await fetch("http://localhost:8000/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message }),
+          body: JSON.stringify({ messages: apiMessagesForChat }),
         });
-
-        if (!res.ok) {
-          const errData = await res.json().catch(() => null);
-          throw new Error(errData?.detail || `Error ${res.status}`);
-        }
-        data = await res.json();
       }
 
-      // Tambah pesan AI
-      const aiMessage: Message = { role: "assistant", content: data.response };
-      const finalId = currentId;
-      setConversations((prev) => {
-        const updated = prev.map((c) =>
-          c.id === finalId
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null);
+        throw new Error(errData?.detail || `Error ${res.status}`);
+      }
+
+      // Sembunyikan loading indikator, mulai render placeholder pesan AI
+      setIsLoading(false);
+      const aiMessage: Message = { role: "assistant", content: "" };
+      
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === currentId
             ? { ...c, messages: [...c.messages, aiMessage] }
             : c
-        );
-        saveToStorage(updated);
-        return updated;
+        )
+      );
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error("Browser tidak mendukung streaming");
+
+      const decoder = new TextDecoder();
+      let done = false;
+      let aiText = "";
+
+      while (!done) {
+        const { value, done: readerDone } = await reader.read();
+        done = readerDone;
+        if (value) {
+          aiText += decoder.decode(value, { stream: true });
+          
+          setConversations((prev) =>
+            prev.map((c) => {
+              if (c.id === currentId) {
+                const newMsgs = [...c.messages];
+                newMsgs[newMsgs.length - 1] = { 
+                  ...newMsgs[newMsgs.length - 1], 
+                  content: aiText 
+                };
+                return { ...c, messages: newMsgs };
+              }
+              return c;
+            })
+          );
+        }
+      }
+
+      // Simpan ke storage setelah streaming selesai
+      setConversations((prev) => {
+        saveToStorage(prev);
+        return prev;
       });
+
     } catch (err) {
       const errorMsg =
         err instanceof Error
           ? err.message
           : "Terjadi kesalahan yang tidak diketahui";
       setError(errorMsg);
-    } finally {
-      setIsLoading(false);
+      setIsLoading(false); // Pastikan loading mati jika error terjadi sebelum/saat streaming
     }
   };
 

@@ -5,7 +5,10 @@ FastAPI server dengan endpoint /chat dan /chat-with-file untuk komunikasi dengan
 
 import base64
 import io
+import json
+from typing import List
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
@@ -50,12 +53,16 @@ SYSTEM_PROMPT = (
 # Schema Request & Response
 # ============================================================
 
+class ChatMessageData(BaseModel):
+    role: str
+    content: str
+
 class ChatRequest(BaseModel):
-    """Schema untuk request chat teks biasa"""
-    message: str
+    """Schema untuk request chat dengan memori"""
+    messages: List[ChatMessageData]
 
 class ChatResponse(BaseModel):
-    """Schema untuk response ke frontend"""
+    """Schema untuk response ke frontend (tidak lagi dipakai untuk streaming)"""
     response: str
 
 # ============================================================
@@ -85,27 +92,33 @@ def health_check():
     return {"status": "ok", "message": "Velora AI API is running 🚀"}
 
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/chat")
 async def chat(request: ChatRequest):
     """
-    Endpoint untuk chat teks biasa (tanpa file).
+    Endpoint untuk chat teks biasa dengan memori dan streaming.
     """
-    if not request.message.strip():
+    if not request.messages:
         raise HTTPException(status_code=400, detail="Pesan tidak boleh kosong!")
 
     try:
+        messages_for_groq = [{"role": "system", "content": SYSTEM_PROMPT}]
+        for msg in request.messages:
+            messages_for_groq.append({"role": msg.role, "content": msg.content})
+
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": request.message},
-            ],
+            messages=messages_for_groq,
             max_tokens=1024,
             temperature=0.7,
+            stream=True,
         )
 
-        ai_response = completion.choices[0].message.content
-        return ChatResponse(response=ai_response)
+        def generate():
+            for chunk in completion:
+                if chunk.choices[0].delta.content is not None:
+                    yield chunk.choices[0].delta.content
+
+        return StreamingResponse(generate(), media_type="text/plain")
 
     except Exception as e:
         raise HTTPException(
@@ -114,19 +127,27 @@ async def chat(request: ChatRequest):
         )
 
 
-@app.post("/chat-with-file", response_model=ChatResponse)
+@app.post("/chat-with-file")
 async def chat_with_file(
     message: str = Form(default=""),
+    history: str = Form(default="[]"),
     file: UploadFile = File(...),
 ):
     """
-    Endpoint untuk chat dengan file attachment (gambar atau PDF).
-    - Gambar: dikirim ke Groq Vision model
-    - PDF: teks diekstrak lalu dikirim ke model teks
+    Endpoint untuk chat dengan file attachment (gambar atau PDF) dengan memori dan streaming.
     """
     try:
+        try:
+            parsed_history = json.loads(history)
+        except:
+            parsed_history = []
+
         file_bytes = await file.read()
         content_type = file.content_type or ""
+
+        messages_for_groq = [{"role": "system", "content": SYSTEM_PROMPT}]
+        for msg in parsed_history:
+            messages_for_groq.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
 
         # ==================== GAMBAR ====================
         if content_type.startswith("image/"):
@@ -134,29 +155,33 @@ async def chat_with_file(
             base64_image = base64.b64encode(file_bytes).decode("utf-8")
             user_prompt = message.strip() if message.strip() else "Jelaskan gambar ini."
 
+            messages_for_groq.append({
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": user_prompt},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:{content_type};base64,{base64_image}",
+                        },
+                    },
+                ]
+            })
+
             completion = client.chat.completions.create(
                 model="llama-3.2-90b-vision-preview",
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {
-                        "role": "user",
-                        "content": [
-                            {"type": "text", "text": user_prompt},
-                            {
-                                "type": "image_url",
-                                "image_url": {
-                                    "url": f"data:{content_type};base64,{base64_image}",
-                                },
-                            },
-                        ],
-                    },
-                ],
+                messages=messages_for_groq,
                 max_tokens=1024,
                 temperature=0.7,
+                stream=True,
             )
 
-            ai_response = completion.choices[0].message.content
-            return ChatResponse(response=ai_response)
+            def generate_image_stream():
+                for chunk in completion:
+                    if chunk.choices[0].delta.content is not None:
+                        yield chunk.choices[0].delta.content
+
+            return StreamingResponse(generate_image_stream(), media_type="text/plain")
 
         # ==================== PDF ====================
         elif content_type == "application/pdf":
@@ -175,18 +200,22 @@ async def chat_with_file(
                 f"{pdf_text}"
             )
 
+            messages_for_groq.append({"role": "user", "content": full_prompt})
+
             completion = client.chat.completions.create(
                 model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": full_prompt},
-                ],
+                messages=messages_for_groq,
                 max_tokens=1024,
                 temperature=0.7,
+                stream=True,
             )
 
-            ai_response = completion.choices[0].message.content
-            return ChatResponse(response=ai_response)
+            def generate_pdf_stream():
+                for chunk in completion:
+                    if chunk.choices[0].delta.content is not None:
+                        yield chunk.choices[0].delta.content
+
+            return StreamingResponse(generate_pdf_stream(), media_type="text/plain")
 
         # ==================== FILE TIDAK DIDUKUNG ====================
         else:
