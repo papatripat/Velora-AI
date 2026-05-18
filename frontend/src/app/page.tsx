@@ -22,7 +22,15 @@ interface Conversation {
   title: string;
   createdAt: number;
   messages: Message[];
+  personaId?: string;
 }
+
+const PERSONAS = [
+  { id: "default", name: "Velora (Default)", prompt: "Kamu adalah Velora AI, asisten AI yang ramah dan membantu. Jawab pertanyaan user dengan jelas dan ringkas. Gunakan format Markdown jika diperlukan. Kamu bisa menjawab dalam bahasa Indonesia maupun Inggris sesuai bahasa yang digunakan user." },
+  { id: "programmer", name: "Senior Programmer", prompt: "Kamu adalah seorang Senior Programmer yang ahli dalam berbagai bahasa pemrograman. Berikan jawaban yang teknis, best practice, dan selalu sertakan contoh kode yang efisien." },
+  { id: "tutor", name: "English Tutor", prompt: "You are a friendly and strict English tutor. Always reply in English and correct the user's grammar if they make mistakes. Explain the corrections clearly." },
+  { id: "comedian", name: "Pelawak", prompt: "Kamu adalah seorang pelawak stand-up comedy yang lucu. Selalu berikan jawaban yang diselipi humor, candaan, atau sarkasme ringan yang menghibur." }
+];
 
 // Key untuk localStorage
 const STORAGE_KEY = "velora-conversations";
@@ -37,6 +45,7 @@ const generateId = () => Date.now().toString(36) + Math.random().toString(36).sl
 export default function Home() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [activePersonaId, setActivePersonaId] = useState<string>("default");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -85,6 +94,13 @@ export default function Home() {
     setActiveId(id);
     setError(null);
     setSidebarOpen(false);
+    
+    const conv = conversations.find((c) => c.id === id);
+    if (conv && conv.personaId) {
+      setActivePersonaId(conv.personaId);
+    } else {
+      setActivePersonaId("default");
+    }
   };
 
   // Hapus percakapan
@@ -136,6 +152,7 @@ export default function Home() {
         title,
         createdAt: Date.now(),
         messages: [userMessage],
+        personaId: activePersonaId,
       };
 
       updatedConversations = [newConv, ...conversations];
@@ -144,7 +161,7 @@ export default function Home() {
     } else {
       updatedConversations = conversations.map((c) =>
         c.id === currentId
-          ? { ...c, messages: [...c.messages, userMessage] }
+          ? { ...c, messages: [...c.messages, userMessage], personaId: activePersonaId }
           : c
       );
     }
@@ -160,6 +177,9 @@ export default function Home() {
           content: m.content || (m.fileName ? `[File terlampir: ${m.fileName}]` : "")
       }));
 
+      const selectedPersona = PERSONAS.find(p => p.id === activePersonaId) || PERSONAS[0];
+      const systemPrompt = selectedPersona.prompt;
+
       let res;
 
       if (file) {
@@ -167,6 +187,7 @@ export default function Home() {
         formData.append("file", file);
         formData.append("message", message);
         formData.append("history", JSON.stringify(historyMessages));
+        formData.append("system_prompt", systemPrompt);
 
         res = await fetch("http://localhost:8000/chat-with-file", {
           method: "POST",
@@ -181,7 +202,10 @@ export default function Home() {
         res = await fetch("http://localhost:8000/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: apiMessagesForChat }),
+          body: JSON.stringify({ 
+              messages: apiMessagesForChat,
+              system_prompt: systemPrompt
+          }),
         });
       }
 
@@ -297,6 +321,18 @@ export default function Home() {
               Asisten AI pintar siap membantu Anda
             </p>
           </div>
+
+          {/* Persona Selector */}
+          <select 
+            value={activePersonaId}
+            onChange={(e) => setActivePersonaId(e.target.value)}
+            className="text-xs bg-[var(--color-surface-light)] border border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-white px-2 py-2 rounded-lg focus:outline-none focus:border-[var(--color-primary)] transition-all cursor-pointer"
+            title="Pilih Persona AI"
+          >
+            {PERSONAS.map(p => (
+              <option key={p.id} value={p.id}>{p.name}</option>
+            ))}
+          </select>
 
           {/* Tombol New Chat di header */}
           <button

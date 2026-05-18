@@ -60,6 +60,7 @@ class ChatMessageData(BaseModel):
 class ChatRequest(BaseModel):
     """Schema untuk request chat dengan memori"""
     messages: List[ChatMessageData]
+    system_prompt: str = None
 
 class ChatResponse(BaseModel):
     """Schema untuk response ke frontend (tidak lagi dipakai untuk streaming)"""
@@ -101,7 +102,8 @@ async def chat(request: ChatRequest):
         raise HTTPException(status_code=400, detail="Pesan tidak boleh kosong!")
 
     try:
-        messages_for_groq = [{"role": "system", "content": SYSTEM_PROMPT}]
+        active_system_prompt = request.system_prompt if request.system_prompt else SYSTEM_PROMPT
+        messages_for_groq = [{"role": "system", "content": active_system_prompt}]
         for msg in request.messages:
             messages_for_groq.append({"role": msg.role, "content": msg.content})
 
@@ -131,6 +133,7 @@ async def chat(request: ChatRequest):
 async def chat_with_file(
     message: str = Form(default=""),
     history: str = Form(default="[]"),
+    system_prompt: str = Form(default=""),
     file: UploadFile = File(...),
 ):
     """
@@ -145,7 +148,8 @@ async def chat_with_file(
         file_bytes = await file.read()
         content_type = file.content_type or ""
 
-        messages_for_groq = [{"role": "system", "content": SYSTEM_PROMPT}]
+        active_system_prompt = system_prompt if system_prompt else SYSTEM_PROMPT
+        messages_for_groq = [{"role": "system", "content": active_system_prompt}]
         for msg in parsed_history:
             messages_for_groq.append({"role": msg.get("role", "user"), "content": msg.get("content", "")})
 
